@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "skillsmith"
+version = "0.1.0"
+description = "Forge, test, and ship AI agent skills from raw company knowledge — SOPs, docs, chat logs — with a generate→test→eval→iterate loop and multi-format export."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Meghan Bao" }]
+keywords = ["claude", "agents", "skills", "sop", "knowledge-distillation", "anthropic"]
+dependencies = [
+    "anthropic>=0.40.0",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "click>=8.1",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+skillsmith = "skillsmith.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/MeghanBao/skillsmith"
+Repository = "https://github.com/MeghanBao/skillsmith"
+
+[tool.hatchling.build.targets.wheel]
+packages = ["src/skillsmith"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
