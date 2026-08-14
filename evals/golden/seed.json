@@ -1,0 +1,293 @@
+[
+  {
+    "id": "pass-reset-clean",
+    "description": "Clear password-reset SOP, faithful and complete skill",
+    "source": "IT SOP: Reset a locked-out user account. When a user is locked out, support must: 1) Confirm the request arrived as a helpdesk ticket — never act on chat or phone alone; the ticket is the audit trail. 2) Verify identity: match requester email to the ticket and confirm one secondary detail (employee ID or manager name). 3) Trigger the reset: run `idm reset <email>`, which emails a one-time link valid for 30 minutes. 4) Tell the user to set a policy-compliant password (14+ chars, not reused from the last 5). 5) Close the ticket noting who was verified. Hard rule: never reset without a verified ticket; escalate to security if an account is reset more than twice in one week.",
+    "candidate": {
+      "name": "reset-locked-account",
+      "title": "Reset a Locked-Out User Account",
+      "description": "Reset a locked-out user's password following IT verification policy",
+      "triggers": ["user is locked out of their account", "password reset request via helpdesk ticket"],
+      "inputs": ["helpdesk ticket id", "user email"],
+      "workflow": [
+        {"title": "Confirm ticket", "detail": "Ensure the request came in as a helpdesk ticket; never act on chat or phone alone.", "script": null},
+        {"title": "Verify identity", "detail": "Match requester email to the ticket and confirm one secondary detail (employee ID or manager name).", "script": null},
+        {"title": "Trigger reset", "detail": "Run the identity tool to send a one-time reset link valid for 30 minutes.", "script": "idm reset <email>"},
+        {"title": "Guide password", "detail": "Tell the user to set a 14+ character password not reused from the last 5.", "script": null},
+        {"title": "Close ticket", "detail": "Close the ticket noting who was verified.", "script": null}
+      ],
+      "guardrails": ["Never reset without a verified ticket", "Escalate to security if an account is reset more than twice in one week"],
+      "examples": ["Ticket #482: verify identity and reset alice@corp.de"],
+      "source_refs": ["IT SOP: Reset a locked-out user account"],
+      "confidence": "high"
+    },
+    "expected_verdict": "pass",
+    "expected_weak_dimensions": [],
+    "rationale": "Faithful, atomic, actionable, specific triggers, real guardrails."
+  },
+  {
+    "id": "pass-onboarding-clean",
+    "description": "Onboarding provisioning SOP, faithful skill",
+    "source": "IT onboarding SOP: provisioning a new hire. Create the account in the identity system BEFORE the laptop is handed over, never after. Add the user to the base security group and their team group. Never grant admin rights on day one — admin always goes through a separate approval ticket. Send the welcome email with the temporary credential link.",
+    "candidate": {
+      "name": "provision-new-hire",
+      "title": "Provision a New Hire Account",
+      "description": "Provision a new hire's account and group memberships per IT onboarding policy",
+      "triggers": ["new hire starting", "provision account for new employee"],
+      "inputs": ["new hire name", "team name"],
+      "workflow": [
+        {"title": "Create account", "detail": "Create the account in the identity system before the laptop is handed over.", "script": null},
+        {"title": "Add to groups", "detail": "Add the user to the base security group and their team group.", "script": null},
+        {"title": "Send welcome", "detail": "Send the welcome email with the temporary credential link.", "script": null}
+      ],
+      "guardrails": ["Create the account before handing over the laptop, never after", "Never grant admin rights on day one — admin goes through a separate approval ticket"],
+      "examples": ["Provision new hire Jonas on the Payments team"],
+      "source_refs": ["IT onboarding SOP"],
+      "confidence": "high"
+    },
+    "expected_verdict": "pass",
+    "expected_weak_dimensions": [],
+    "rationale": "Complete, faithful, guardrails captured verbatim from the source."
+  },
+  {
+    "id": "pass-deploy-clean",
+    "description": "Deploy rollback runbook, faithful skill",
+    "source": "Runbook: rolling back a bad production deploy. When error rate exceeds 5% for 3 minutes after a deploy: 1) Announce in #incidents that you are rolling back. 2) Run `deploy rollback --to-last-green` to restore the previous green build. 3) Confirm error rate returns below 1% within 5 minutes. 4) If rollback does not recover, page the on-call SRE. Never hotfix forward during an active incident — always roll back first.",
+    "candidate": {
+      "name": "rollback-bad-deploy",
+      "title": "Roll Back a Bad Production Deploy",
+      "description": "Roll back a production deploy when error rate spikes, per the incident runbook",
+      "triggers": ["error rate spiked after a deploy", "bad deploy needs rollback"],
+      "inputs": ["current error rate"],
+      "workflow": [
+        {"title": "Announce", "detail": "Announce in #incidents that you are rolling back.", "script": null},
+        {"title": "Roll back", "detail": "Restore the previous green build.", "script": "deploy rollback --to-last-green"},
+        {"title": "Confirm recovery", "detail": "Confirm error rate returns below 1% within 5 minutes.", "script": null},
+        {"title": "Escalate if needed", "detail": "If rollback does not recover, page the on-call SRE.", "script": null}
+      ],
+      "guardrails": ["Never hotfix forward during an active incident — always roll back first"],
+      "examples": ["Error rate hit 8% after the 2pm deploy — roll back"],
+      "source_refs": ["Runbook: rolling back a bad production deploy"],
+      "confidence": "high"
+    },
+    "expected_verdict": "pass",
+    "expected_weak_dimensions": [],
+    "rationale": "Faithful to the runbook with the hard rule preserved."
+  },
+  {
+    "id": "pass-refund-clean",
+    "description": "Refund policy, faithful skill",
+    "source": "Support policy: processing a customer refund. Refunds are allowed within 30 days of purchase. 1) Verify the order in the billing system and confirm it is within 30 days. 2) Confirm the customer's identity matches the order email. 3) Issue the refund with `billing refund <order-id>`. 4) Email the customer confirming the refund and the 5-10 business day bank timeline. Never issue a refund past 30 days without manager approval.",
+    "candidate": {
+      "name": "process-customer-refund",
+      "title": "Process a Customer Refund",
+      "description": "Process a customer refund within the 30-day policy window",
+      "triggers": ["customer requests a refund", "refund request within 30 days"],
+      "inputs": ["order id", "customer email"],
+      "workflow": [
+        {"title": "Verify order", "detail": "Verify the order in billing and confirm it is within 30 days.", "script": null},
+        {"title": "Confirm identity", "detail": "Confirm the customer's identity matches the order email.", "script": null},
+        {"title": "Issue refund", "detail": "Issue the refund via billing.", "script": "billing refund <order-id>"},
+        {"title": "Notify", "detail": "Email the customer confirming the refund and the 5-10 business day timeline.", "script": null}
+      ],
+      "guardrails": ["Never issue a refund past 30 days without manager approval"],
+      "examples": ["Refund order #A1023 requested on day 12"],
+      "source_refs": ["Support policy: processing a customer refund"],
+      "confidence": "high"
+    },
+    "expected_verdict": "pass",
+    "expected_weak_dimensions": [],
+    "rationale": "Faithful and complete with the 30-day guardrail."
+  },
+  {
+    "id": "revise-invented-step",
+    "description": "Reset skill invents a step and a compliance URL not in the source",
+    "source": "IT SOP: Reset a locked-out user account. Confirm the request arrived as a helpdesk ticket. Verify identity by matching requester email to the ticket and one secondary detail (employee ID or manager name). Run `idm reset <email>` to send a one-time link valid 30 minutes. Tell the user to set a policy-compliant password. Close the ticket. Never reset without a verified ticket.",
+    "candidate": {
+      "name": "reset-locked-account",
+      "title": "Reset a Locked-Out User Account",
+      "description": "Reset a locked-out user's password following IT policy",
+      "triggers": ["user is locked out", "password reset request"],
+      "inputs": ["ticket id", "user email"],
+      "workflow": [
+        {"title": "Confirm ticket", "detail": "Ensure the request came in as a helpdesk ticket.", "script": null},
+        {"title": "Get manager approval", "detail": "Call the user's manager on the phone to get verbal approval before resetting.", "script": null},
+        {"title": "Trigger reset", "detail": "Run the identity tool to send a one-time reset link.", "script": "idm reset <email>"},
+        {"title": "Log to compliance sheet", "detail": "Record the reset in the compliance spreadsheet at https://sheets.corp/resets.", "script": null}
+      ],
+      "guardrails": ["Never reset without a verified ticket"],
+      "examples": ["Reset alice@corp.de"],
+      "source_refs": ["IT SOP"],
+      "confidence": "high"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["faithful"],
+    "rationale": "The manager phone-approval step and the compliance spreadsheet URL are invented; neither appears in the source."
+  },
+  {
+    "id": "revise-two-tasks",
+    "description": "Two distinct procedures (reset + VPN grant) crammed into one skill",
+    "source": "Helpdesk SOP. Password resets: verify the ticket, run `idm reset <email>`, tell the user the link expires in 30 minutes. Separately, VPN access requests: verify the ticket, run `vpn grant <email>`, and notify the user their VPN is active within 1 hour.",
+    "candidate": {
+      "name": "handle-helpdesk-requests",
+      "title": "Handle Helpdesk Requests",
+      "description": "Handle password resets and VPN access requests from the helpdesk",
+      "triggers": ["password reset request", "vpn access request"],
+      "inputs": ["ticket id", "user email"],
+      "workflow": [
+        {"title": "Verify ticket", "detail": "Verify the request came in as a ticket.", "script": null},
+        {"title": "Reset password", "detail": "Run the reset tool and tell the user the link expires in 30 minutes.", "script": "idm reset <email>"},
+        {"title": "Grant VPN", "detail": "Run the VPN grant tool and notify the user within 1 hour.", "script": "vpn grant <email>"}
+      ],
+      "guardrails": ["Verify the ticket before acting"],
+      "examples": ["Reset a password or grant VPN from a ticket"],
+      "source_refs": ["Helpdesk SOP"],
+      "confidence": "medium"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["atomic"],
+    "rationale": "Password reset and VPN provisioning are two separate jobs; they should be two skills."
+  },
+  {
+    "id": "revise-vague-steps",
+    "description": "Workflow steps are too vague to execute",
+    "source": "Runbook: rolling back a bad production deploy. When error rate exceeds 5% for 3 minutes: announce in #incidents, run `deploy rollback --to-last-green`, confirm error rate drops below 1% within 5 minutes, and page the on-call SRE if it does not recover. Never hotfix forward during an incident.",
+    "candidate": {
+      "name": "handle-bad-deploy",
+      "title": "Handle a Bad Deploy",
+      "description": "Deal with a production deploy that is causing problems",
+      "triggers": ["bad deploy", "deploy causing issues"],
+      "inputs": [],
+      "workflow": [
+        {"title": "Assess", "detail": "Look at the situation and figure out how bad it is.", "script": null},
+        {"title": "Take action", "detail": "Do whatever is appropriate to fix the problem.", "script": null},
+        {"title": "Follow up", "detail": "Handle any follow-up as needed.", "script": null}
+      ],
+      "guardrails": ["Be careful"],
+      "examples": ["A deploy went bad"],
+      "source_refs": ["Runbook"],
+      "confidence": "low"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["actionable"],
+    "rationale": "The source has concrete commands and thresholds; the skill replaces them with unactionable filler."
+  },
+  {
+    "id": "revise-generic-triggers",
+    "description": "Solid workflow but triggers are far too broad",
+    "source": "Support policy: processing a customer refund. Refunds are allowed within 30 days. Verify the order is within 30 days, confirm the customer's identity matches the order email, run `billing refund <order-id>`, and email the customer. Never issue a refund past 30 days without manager approval.",
+    "candidate": {
+      "name": "process-refund",
+      "title": "Process a Customer Refund",
+      "description": "Process a customer refund within the 30-day window",
+      "triggers": ["customer needs help", "user has a question", "someone contacts support"],
+      "inputs": ["order id", "customer email"],
+      "workflow": [
+        {"title": "Verify order", "detail": "Verify the order is within 30 days.", "script": null},
+        {"title": "Confirm identity", "detail": "Confirm identity matches the order email.", "script": null},
+        {"title": "Issue refund", "detail": "Issue the refund via billing.", "script": "billing refund <order-id>"},
+        {"title": "Notify", "detail": "Email the customer confirming the refund.", "script": null}
+      ],
+      "guardrails": ["Never issue a refund past 30 days without manager approval"],
+      "examples": ["Refund order #A1023"],
+      "source_refs": ["Support policy"],
+      "confidence": "medium"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["triggerable"],
+    "rationale": "Triggers would fire on nearly any support contact, not specifically refunds."
+  },
+  {
+    "id": "revise-missing-guardrail",
+    "description": "Source has a hard rule the skill omits entirely",
+    "source": "Support policy: processing a customer refund. Refunds are allowed within 30 days. Verify the order, confirm identity, run `billing refund <order-id>`, email the customer. Hard rule: never issue a refund past 30 days without manager approval.",
+    "candidate": {
+      "name": "process-refund",
+      "title": "Process a Customer Refund",
+      "description": "Process a customer refund request in billing",
+      "triggers": ["customer requests a refund"],
+      "inputs": ["order id", "customer email"],
+      "workflow": [
+        {"title": "Verify order", "detail": "Verify the order in billing.", "script": null},
+        {"title": "Confirm identity", "detail": "Confirm identity matches the order email.", "script": null},
+        {"title": "Issue refund", "detail": "Issue the refund.", "script": "billing refund <order-id>"},
+        {"title": "Notify", "detail": "Email the customer confirming the refund.", "script": null}
+      ],
+      "guardrails": [],
+      "examples": ["Refund order #A1023"],
+      "source_refs": ["Support policy"],
+      "confidence": "medium"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["guarded"],
+    "rationale": "The explicit 30-day manager-approval hard rule is dropped, leaving no guardrails."
+  },
+  {
+    "id": "revise-hallucinated-credential",
+    "description": "Skill invents an admin API endpoint and bearer token",
+    "source": "IT onboarding SOP: provisioning a new hire. Create the account in the identity system before the laptop is handed over. Add the user to the base security group and their team group. Never grant admin rights on day one — admin always goes through a separate approval ticket.",
+    "candidate": {
+      "name": "provision-new-hire",
+      "title": "Provision a New Hire Account",
+      "description": "Provision a new hire's account and access",
+      "triggers": ["new hire starting"],
+      "inputs": ["new hire name", "team name"],
+      "workflow": [
+        {"title": "Create account", "detail": "Create the account in the identity system.", "script": null},
+        {"title": "Add to groups", "detail": "Add the user to the base and team groups.", "script": null},
+        {"title": "Grant admin", "detail": "Immediately grant admin by calling the admin API.", "script": "curl -X POST https://idm.corp/api/admin -H 'Authorization: Bearer sk-admin-9931'"}
+      ],
+      "guardrails": [],
+      "examples": ["Provision new hire Jonas"],
+      "source_refs": ["IT onboarding SOP"],
+      "confidence": "high"
+    },
+    "expected_verdict": "revise",
+    "expected_weak_dimensions": ["faithful"],
+    "rationale": "The admin API URL and bearer token are fabricated, and granting admin on day one contradicts the source's hard rule."
+  },
+  {
+    "id": "reject-thin-chat",
+    "description": "Two lines of lunch banter cannot support an operational skill",
+    "source": "alice: anyone know a good lunch place near the office?\nbob: the ramen spot on 5th is solid\nalice: nice, thanks",
+    "candidate": {
+      "name": "recommend-lunch-spot",
+      "title": "Recommend a Lunch Spot",
+      "description": "Recommend nearby lunch places to coworkers",
+      "triggers": ["someone asks for lunch recommendations"],
+      "inputs": [],
+      "workflow": [
+        {"title": "Suggest ramen", "detail": "Recommend the ramen spot on 5th.", "script": null}
+      ],
+      "guardrails": [],
+      "examples": ["Someone asks where to eat"],
+      "source_refs": ["chat"],
+      "confidence": "low"
+    },
+    "expected_verdict": "reject",
+    "expected_weak_dimensions": [],
+    "rationale": "Casual banter, no repeatable procedure worth capturing as a skill."
+  },
+  {
+    "id": "reject-offtopic",
+    "description": "Cafeteria menu cannot support a deploy skill",
+    "source": "Cafeteria menu — Week of March 19. Monday: lentil soup, grilled chicken. Tuesday: pasta primavera. Wednesday: fish tacos. Thursday: curry. Friday: pizza.",
+    "candidate": {
+      "name": "deploy-to-production",
+      "title": "Deploy to Production",
+      "description": "Deploy the application to the production environment",
+      "triggers": ["deploy to prod"],
+      "inputs": [],
+      "workflow": [
+        {"title": "Run deploy", "detail": "Run the deploy command.", "script": "deploy prod"}
+      ],
+      "guardrails": [],
+      "examples": ["Ship the release"],
+      "source_refs": ["menu"],
+      "confidence": "low"
+    },
+    "expected_verdict": "reject",
+    "expected_weak_dimensions": [],
+    "rationale": "The source is a lunch menu; nothing in it supports a deployment skill."
+  }
+]

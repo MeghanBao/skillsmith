@@ -65,8 +65,9 @@ skillsmith inputs
 | `batch.py` | 文件夹级调度 + 汇总报告 |
 | `loaders/` | 源文件 → 干净纯文本（`.md`、`.pdf`、`.html`、`.vtt`/`.srt`、Slack `.json`） |
 | `renderers/` | `SkillIR` → 目标文件（`claude-code`、`adal`…） |
+| `evalset.py` | critic 的 golden 回归测试 harness |
 | `llm.py` | 唯一 import Anthropic SDK 的模块 |
-| `cli.py` | `forge` / `batch` / `formats` / `inputs` 命令 |
+| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` 命令 |
 
 ## 输入格式
 
@@ -101,6 +102,31 @@ skillsmith inputs
 
 和渲染器同理——生成和评估永远不变。
 
+## 给评委出考卷（golden 回归集）
+
+critic 本身是个 LLM，一旦你改 `prompts/eval_skill.md` 或换模型，它的判断可能悄悄变差。`evals/golden/` 存的就是**人工标注好标准答案的考题**——每条是 `(源文档, 候选 skill, 应有的判定)` 外加「本该扣分的维度」——`eval-critic` 让真实评委重做一遍：
+
+```bash
+skillsmith eval-critic                      # 需要 ANTHROPIC_API_KEY
+skillsmith eval-critic --threshold 0.9      # 更严的门槛
+```
+
+它输出**判定一致率、弱维度召回率、混淆矩阵**，回归时以非零码退出，可用来卡 CI：
+
+```
+Critic golden eval — 12 case(s)
+  verdict agreement : 92% (threshold 85%)  ✅ PASS
+  weak-dim recall   : 100%
+
+  confusion (rows=expected, cols=actual):
+                 pass   revise   reject
+       pass         3        1        0
+     revise         0        6        0
+     reject         0        0        2
+```
+
+往 `evals/golden/` 里丢一个 JSON 对象（或数组）就能加样本。种子集覆盖了 忠实/原子/可执行/可触发/有护栏 各类失败模式，外加「源太薄」和「跑题」两类 reject。
+
 ## 测试
 
 ```bash
@@ -113,8 +139,8 @@ pytest -v          # 全程离线：用 fake completer 脚本化 LLM 响应
 - [x] 批量调度 + review 报告
 - [x] 渲染器：Claude Code `SKILL.md`、AdaL `@skills`
 - [x] 源加载器：PDF、HTML、Slack 导出、VTT/SRT 转录
+- [x] Golden eval 集 + critic 回归测试
 - [ ] OpenCode 渲染器
-- [ ] Golden eval 集 + critic 回归测试
 - [ ]「企业知识沉淀即服务」面向中小企业的产品化
 
 ## License

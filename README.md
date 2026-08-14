@@ -72,8 +72,9 @@ skillsmith formats
 | `batch.py` | scheduler + summary report over a folder |
 | `loaders/` | source file → clean plain text (`.md`, `.pdf`, `.html`, `.vtt`/`.srt`, Slack `.json`) |
 | `renderers/` | `SkillIR` → target files (`claude-code`, `adal`, …) |
+| `evalset.py` | golden regression harness for the critic |
 | `llm.py` | the only module that imports the Anthropic SDK |
-| `cli.py` | `forge` / `batch` / `formats` / `inputs` commands |
+| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` commands |
 
 ## Source formats
 
@@ -109,6 +110,37 @@ That's it — the generation and eval engine are untouched.
 
 Same principle as renderers — generation and eval never change.
 
+## Testing the critic (golden regression set)
+
+The critic is itself an LLM, so its judgement can silently drift when you change
+`prompts/eval_skill.md` or the model. `evals/golden/` holds human-labelled cases
+— each a `(source, candidate skill, expected verdict)` plus the dimensions that
+*should* score low — and `eval-critic` runs the real critic against them:
+
+```bash
+skillsmith eval-critic                      # needs ANTHROPIC_API_KEY
+skillsmith eval-critic --threshold 0.9      # stricter gate
+```
+
+It reports verdict agreement, weak-dimension recall, and a confusion matrix, and
+exits non-zero on regression so it can gate CI:
+
+```
+Critic golden eval — 12 case(s)
+  verdict agreement : 92% (threshold 85%)  ✅ PASS
+  weak-dim recall   : 100%
+
+  confusion (rows=expected, cols=actual):
+                 pass   revise   reject
+       pass         3        1        0
+     revise         0        6        0
+     reject         0        0        2
+```
+
+Add cases by dropping a JSON object (or list) into `evals/golden/`. The seed set
+covers faithful/atomic/actionable/triggerable/guarded failure modes plus
+too-thin and off-topic rejects.
+
 ## Tests
 
 ```bash
@@ -121,8 +153,8 @@ pytest -v          # fully offline: a fake completer scripts the LLM responses
 - [x] Batch scheduler with review report
 - [x] Renderers: Claude Code `SKILL.md`, AdaL `@skills`
 - [x] Source loaders: PDF, HTML, Slack export, VTT/SRT transcripts
+- [x] Golden eval set + regression harness for the critic
 - [ ] OpenCode renderer
-- [ ] Golden eval set + regression harness for the critic
 - [ ] "Knowledge distillation as a service" packaging for SMEs
 
 ## License

@@ -4,6 +4,7 @@
     skillsmith batch  <folder>        # many docs -> many skills + report
     skillsmith formats                # list export targets
     skillsmith inputs                 # list supported source formats
+    skillsmith eval-critic            # regression-test the critic vs golden set
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import click
 from rich.console import Console
 
 from .batch import forge_batch, summarize
+from .evalset import format_report, load_golden, run_critic_eval
 from .ir import SkillIR
 from .loaders import load_source, supported_suffixes
 from .pipeline import forge_skill
@@ -114,6 +116,30 @@ def batch(folder: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, w
     (out).mkdir(parents=True, exist_ok=True)
     (out / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     console.print(f"\nReport → {out / 'report.json'}")
+
+
+@main.command(name="eval-critic")
+@click.option(
+    "--golden-dir",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path("evals/golden"),
+    show_default=True,
+    help="file or directory of golden cases",
+)
+@click.option("--threshold", default=0.85, show_default=True, help="min verdict agreement to pass")
+def eval_critic(golden_dir: Path, threshold: float) -> None:
+    """Regression-test the critic against the human-labelled golden set.
+
+    Runs the real critic on every golden case and reports verdict agreement,
+    weak-dimension recall, and a confusion matrix. Exits non-zero on regression
+    so it can gate CI. Requires ANTHROPIC_API_KEY.
+    """
+    cases = load_golden(golden_dir)
+    console.print(f"[bold]Evaluating critic[/bold] on {len(cases)} golden case(s) …")
+    report = run_critic_eval(cases, threshold=threshold)
+    console.print("\n" + format_report(report))
+    if not report.passed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
