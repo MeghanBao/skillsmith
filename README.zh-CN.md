@@ -66,8 +66,9 @@ skillsmith inputs
 | `loaders/` | 源文件 → 干净纯文本（`.md`、`.pdf`、`.html`、`.vtt`/`.srt`、Slack `.json`） |
 | `renderers/` | `SkillIR` → 目标文件（`claude-code`、`adal`…） |
 | `evalset.py` | critic 的 golden 回归测试 harness |
+| `web/` | FastAPI review 工作台（上传 → review/编辑 → 导出） |
 | `llm.py` | 唯一 import Anthropic SDK 的模块 |
-| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` 命令 |
+| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` / `serve` |
 
 ## 输入格式
 
@@ -101,6 +102,25 @@ skillsmith inputs
 2. 在 `loaders/__init__.py` 里注册实例。
 
 和渲染器同理——生成和评估永远不变。
+
+## Web review 工作台
+
+产品化的第一层：给非技术用户的浏览器界面，把企业知识沉淀成 skill。上传文档 → 后台批量 forge → 逐个 review 生成的 skill（带 pass/需review/rejected 徽章和置信度）→ 在网页里改需要改的 → 批准或丢弃 → 下载只含**批准**的 skill、按所选格式打好包的 zip。
+
+```bash
+pip install -e ".[web]"
+export ANTHROPIC_API_KEY=sk-...
+skillsmith serve                 # → http://127.0.0.1:8000
+```
+
+引擎、critic、渲染器全部原样复用——Web 层只是 `batch` + `renderers` 的一层薄封装。HTTP API：
+
+| 方法 & 路径 | 作用 |
+|-------------|------|
+| `POST /api/jobs` | 上传文件 + 格式 → 启动 forge job |
+| `GET /api/jobs/{id}` | 轮询状态 + review 报告 |
+| `PUT /api/jobs/{id}/skills/{i}` | 保存编辑 / 设定决策（批准、丢弃） |
+| `GET /api/jobs/{id}/download` | 打包下载已批准的 skill |
 
 ## 给评委出考卷（golden 回归集）
 
@@ -140,8 +160,9 @@ pytest -v          # 全程离线：用 fake completer 脚本化 LLM 响应
 - [x] 渲染器：Claude Code `SKILL.md`、AdaL `@skills`
 - [x] 源加载器：PDF、HTML、Slack 导出、VTT/SRT 转录
 - [x] Golden eval 集 + critic 回归测试
+- [x] Web review 工作台（上传 → review/编辑 → 导出）——中小企业服务的 MVP
 - [ ] OpenCode 渲染器
-- [ ]「企业知识沉淀即服务」面向中小企业的产品化
+- [ ] 工作台产品化：多租户 + 鉴权 + 私有/本地部署（GDPR 合规）
 
 ## License
 

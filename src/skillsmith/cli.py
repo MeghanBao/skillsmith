@@ -5,6 +5,7 @@
     skillsmith formats                # list export targets
     skillsmith inputs                 # list supported source formats
     skillsmith eval-critic            # regression-test the critic vs golden set
+    skillsmith serve                  # web review workbench (upload/review/export)
 """
 
 from __future__ import annotations
@@ -140,6 +141,24 @@ def eval_critic(golden_dir: Path, threshold: float) -> None:
     console.print("\n" + format_report(report))
     if not report.passed:
         raise SystemExit(1)
+
+
+@main.command()
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", default=8000, show_default=True)
+@click.option("--forge-workers", default=4, show_default=True, help="parallel forges per job")
+def serve(host: str, port: int, forge_workers: int) -> None:
+    """Launch the web review workbench (upload → review → export)."""
+    try:
+        import uvicorn
+
+        from .web import create_app
+    except ImportError:
+        raise SystemExit(
+            "web dependencies missing — install them with: pip install 'skillsmith[web]'"
+        ) from None
+    console.print(f"[bold]Skillsmith[/bold] workbench → http://{host}:{port}")
+    uvicorn.run(create_app(forge_workers=forge_workers), host=host, port=port)
 
 
 if __name__ == "__main__":

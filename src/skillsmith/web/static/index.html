@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skillsmith — knowledge → agent skills</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e6e9ef; --mut:#9aa4b2;
+          --acc:#f0883e; --ok:#3fb950; --warn:#d29922; --bad:#f85149; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { padding:20px 28px; border-bottom:1px solid var(--line); display:flex;
+           align-items:center; gap:12px; }
+  header h1 { font-size:20px; margin:0; }
+  header .tag { color:var(--mut); font-size:13px; }
+  main { max-width:1000px; margin:0 auto; padding:24px 28px 80px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+          padding:20px; margin-bottom:20px; }
+  h2 { font-size:15px; margin:0 0 14px; color:var(--mut); text-transform:uppercase;
+       letter-spacing:.06em; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line);
+           background:#20242d; color:var(--ink); border-radius:7px; padding:8px 14px; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#1a1204;
+                   font-weight:600; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  input[type=file] { color:var(--mut); }
+  input[type=text], textarea { width:100%; background:var(--bg); color:var(--ink);
+    border:1px solid var(--line); border-radius:6px; padding:8px 10px; font:inherit; }
+  textarea { resize:vertical; min-height:52px; }
+  label.field { display:block; margin:12px 0 4px; color:var(--mut); font-size:13px; }
+  .fmts { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; }
+  .fmts label { color:var(--ink); font-size:14px; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line);
+          font-size:14px; vertical-align:middle; }
+  th { color:var(--mut); font-weight:500; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+  .b-pass{ background:rgba(63,185,80,.15); color:var(--ok); }
+  .b-review{ background:rgba(210,153,34,.15); color:var(--warn); }
+  .b-rejected,.b-error{ background:rgba(248,81,73,.15); color:var(--bad); }
+  .b-approved{ color:var(--ok); } .b-pending{ color:var(--warn); }
+  .b-discarded{ color:var(--mut); text-decoration:line-through; }
+  .muted { color:var(--mut); }
+  .row-actions button { padding:5px 10px; font-size:13px; }
+  dialog { background:var(--panel); color:var(--ink); border:1px solid var(--line);
+           border-radius:12px; width:min(680px,92vw); padding:0; }
+  dialog::backdrop { background:rgba(0,0,0,.55); }
+  .dlg-head { padding:16px 20px; border-bottom:1px solid var(--line);
+              display:flex; justify-content:space-between; align-items:center; }
+  .dlg-body { padding:20px; max-height:64vh; overflow:auto; }
+  .dlg-foot { padding:16px 20px; border-top:1px solid var(--line); display:flex;
+              gap:10px; justify-content:flex-end; }
+  .step { border:1px solid var(--line); border-radius:8px; padding:12px; margin:8px 0;
+          background:var(--bg); }
+  .step .step-head { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .err { color:var(--bad); font-size:13px; margin-top:8px; white-space:pre-wrap; }
+  .hidden { display:none; }
+  #status { color:var(--mut); font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔨 Skillsmith</h1>
+  <span class="tag">upload company knowledge → review → export agent skills</span>
+</header>
+<main>
+  <div class="card">
+    <h2>1 · Upload sources</h2>
+    <input id="files" type="file" multiple />
+    <div class="fmts" id="fmts"></div>
+    <button class="primary" id="forge">Forge skills</button>
+    <span id="status"></span>
+  </div>
+
+  <div class="card hidden" id="report-card">
+    <h2>2 · Review</h2>
+    <table>
+      <thead><tr><th>Source</th><th>Skill</th><th>Status</th><th>Confidence</th>
+        <th>Decision</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div style="margin-top:16px">
+      <button class="primary" id="download">Download approved skills (.zip)</button>
+      <span class="muted" id="dl-note"></span>
+    </div>
+  </div>
+</main>
+
+<dialog id="editor">
+  <form method="dialog">
+    <div class="dlg-head"><strong id="ed-title">Edit skill</strong>
+      <button value="cancel">✕</button></div>
+    <div class="dlg-body">
+      <label class="field">Name (kebab-case id)</label>
+      <input type="text" id="ed-name" />
+      <label class="field">Title</label>
+      <input type="text" id="ed-title-in" />
+      <label class="field">Description</label>
+      <input type="text" id="ed-desc" />
+      <label class="field">Triggers (one per line)</label>
+      <textarea id="ed-triggers"></textarea>
+      <label class="field">Inputs (one per line)</label>
+      <textarea id="ed-inputs"></textarea>
+      <label class="field">Workflow</label>
+      <div id="ed-steps"></div>
+      <button type="button" id="add-step">+ Add step</button>
+      <label class="field">Guardrails (one per line)</label>
+      <textarea id="ed-guards"></textarea>
+      <div class="err hidden" id="ed-err"></div>
+    </div>
+    <div class="dlg-foot">
+      <button value="cancel">Cancel</button>
+      <button type="button" id="discard">Discard skill</button>
+      <button type="button" class="primary" id="approve">Save &amp; approve</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+let jobId = null, editing = null;
+
+function lines(t){ return t.split("\n").map(s=>s.trim()).filter(Boolean); }
+function toLines(a){ return (a||[]).join("\n"); }
+
+async function loadFormats(){
+  const r = await fetch("/api/formats"); const {formats} = await r.json();
+  $("#fmts").innerHTML = formats.map(f =>
+    `<label><input type="checkbox" value="${f}" checked/> ${f}</label>`).join("");
+}
+
+$("#forge").onclick = async () => {
+  const files = $("#files").files;
+  if(!files.length){ $("#status").textContent = "Pick at least one file."; return; }
+  const fmts = [...document.querySelectorAll("#fmts input:checked")].map(c=>c.value);
+  const fd = new FormData();
+  for(const f of files) fd.append("files", f);
+  fd.append("formats", fmts.join(","));
+  $("#forge").disabled = true; $("#status").textContent = "Uploading…";
+  const r = await fetch("/api/jobs", {method:"POST", body:fd});
+  const {job_id} = await r.json(); jobId = job_id;
+  poll();
+};
+
+async function poll(){
+  const r = await fetch(`/api/jobs/${jobId}`); const job = await r.json();
+  if(job.status === "running"){ $("#status").textContent = "Forging skills…"; setTimeout(poll, 1000); return; }
+  $("#forge").disabled = false;
+  if(job.status === "error"){ $("#status").textContent = "Error: " + job.error; return; }
+  $("#status").textContent = "";
+  render(job);
+}
+
+function badge(kind, text){ return `<span class="badge b-${kind}">${text}</span>`; }
+
+function render(job){
+  $("#report-card").classList.remove("hidden");
+  $("#rows").innerHTML = job.skills.map(s => {
+    const st = {pass:["pass","✅ ok"], review:["review","⚠️ review"],
+                rejected:["rejected","⛔ reject"], error:["error","💥 error"]}[s.status];
+    const canEdit = s.skill !== null;
+    const dec = canEdit ? badge(s.decision, s.decision) : "<span class='muted'>—</span>";
+    const name = s.skill ? s.skill.name : (s.error || "—");
+    return `<tr>
+      <td>${s.source}</td>
+      <td>${name}</td>
+      <td>${badge(st[0], st[1])}</td>
+      <td class="muted">${s.confidence||"—"}</td>
+      <td>${dec}</td>
+      <td class="row-actions">${canEdit ? `<button data-i="${s.index}">Review</button>`:""}</td>
+    </tr>`;
+  }).join("");
+  document.querySelectorAll("#rows button").forEach(b =>
+    b.onclick = () => openEditor(job, +b.dataset.i));
+  const approved = job.skills.filter(s => s.decision === "approved").length;
+  $("#download").disabled = approved === 0;
+  $("#dl-note").textContent = approved ? `${approved} approved` : "approve at least one skill";
+}
+
+function stepEl(step={title:"",detail:"",script:null}){
+  const d = document.createElement("div"); d.className = "step";
+  d.innerHTML = `<div class="step-head"><input type="text" class="s-title" placeholder="step title"/>
+    <button type="button" class="s-del">remove</button></div>
+    <textarea class="s-detail" placeholder="what to do"></textarea>
+    <textarea class="s-script" placeholder="optional shell/code"></textarea>`;
+  d.querySelector(".s-title").value = step.title||"";
+  d.querySelector(".s-detail").value = step.detail||"";
+  d.querySelector(".s-script").value = step.script||"";
+  d.querySelector(".s-del").onclick = () => d.remove();
+  return d;
+}
+
+function openEditor(job, index){
+  editing = {job, index};
+  const s = job.skills.find(x => x.index === index).skill;
+  $("#ed-err").classList.add("hidden");
+  $("#ed-title").textContent = "Review · " + s.name;
+  $("#ed-name").value = s.name; $("#ed-title-in").value = s.title;
+  $("#ed-desc").value = s.description;
+  $("#ed-triggers").value = toLines(s.triggers);
+  $("#ed-inputs").value = toLines(s.inputs);
+  $("#ed-guards").value = toLines(s.guardrails);
+  const steps = $("#ed-steps"); steps.innerHTML = "";
+  (s.workflow||[]).forEach(st => steps.appendChild(stepEl(st)));
+  $("#editor").showModal();
+}
+
+$("#add-step").onclick = () => $("#ed-steps").appendChild(stepEl());
+
+function collectSkill(){
+  const steps = [...document.querySelectorAll("#ed-steps .step")].map(d => ({
+    title: d.querySelector(".s-title").value.trim(),
+    detail: d.querySelector(".s-detail").value.trim(),
+    script: d.querySelector(".s-script").value.trim() || null,
+  })).filter(s => s.title || s.detail);
+  return {
+    name: $("#ed-name").value.trim(),
+    title: $("#ed-title-in").value.trim(),
+    description: $("#ed-desc").value.trim(),
+    triggers: lines($("#ed-triggers").value),
+    inputs: lines($("#ed-inputs").value),
+    workflow: steps,
+    guardrails: lines($("#ed-guards").value),
+  };
+}
+
+async function put(index, body){
+  const r = await fetch(`/api/jobs/${jobId}/skills/${index}`, {
+    method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  if(!r.ok){ const e = await r.json(); throw new Error(JSON.stringify(e.detail, null, 2)); }
+  return r.json();
+}
+
+$("#approve").onclick = async () => {
+  try {
+    await put(editing.index, {skill: collectSkill(), decision:"approved"});
+    $("#editor").close(); refresh();
+  } catch(e){ $("#ed-err").textContent = "Invalid skill:\n" + e.message;
+              $("#ed-err").classList.remove("hidden"); }
+};
+$("#discard").onclick = async () => {
+  await put(editing.index, {decision:"discarded"}); $("#editor").close(); refresh();
+};
+
+async function refresh(){
+  const r = await fetch(`/api/jobs/${jobId}`); render(await r.json());
+}
+
+$("#download").onclick = () => window.location = `/api/jobs/${jobId}/download`;
+
+loadFormats();
+</script>
+</body>
+</html>

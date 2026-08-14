@@ -56,6 +56,27 @@ def eval_json(**overrides) -> str:
     return json.dumps(base)
 
 
+class StubCompleter:
+    """Order-independent completer for parallel/batch tests.
+
+    Chooses its reply from the *prompt* rather than a queue, so it is safe under
+    the thread pool that ``forge_batch`` uses. Returns a skill for generation
+    calls and an evaluation for critic calls.
+    """
+
+    def __init__(self, skill: str | None = None, evaluation: str | None = None):
+        self._skill = skill or skill_json()
+        self._eval = evaluation or eval_json()
+
+    def complete(self, system: str, user: str) -> str:
+        return self._eval if "critic" in system.lower() else self._skill
+
+
 @pytest.fixture
 def make_completer():
     return FakeCompleter
+
+
+@pytest.fixture
+def stub_completer():
+    return StubCompleter

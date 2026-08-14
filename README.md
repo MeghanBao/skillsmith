@@ -73,8 +73,9 @@ skillsmith formats
 | `loaders/` | source file → clean plain text (`.md`, `.pdf`, `.html`, `.vtt`/`.srt`, Slack `.json`) |
 | `renderers/` | `SkillIR` → target files (`claude-code`, `adal`, …) |
 | `evalset.py` | golden regression harness for the critic |
+| `web/` | FastAPI review workbench (upload → review/edit → export) |
 | `llm.py` | the only module that imports the Anthropic SDK |
-| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` commands |
+| `cli.py` | `forge` / `batch` / `formats` / `inputs` / `eval-critic` / `serve` |
 
 ## Source formats
 
@@ -109,6 +110,30 @@ That's it — the generation and eval engine are untouched.
 2. Register the instance in `loaders/__init__.py`.
 
 Same principle as renderers — generation and eval never change.
+
+## Web review workbench
+
+The productization surface: a browser UI for non-technical users to sediment
+company knowledge into skills. Upload documents → a background job forges them →
+review each generated skill (with a pass / needs-review / rejected badge and
+confidence) → edit the ones that need work → approve or discard → download a zip
+of the approved skills rendered to the chosen formats.
+
+```bash
+pip install -e ".[web]"
+export ANTHROPIC_API_KEY=sk-...
+skillsmith serve                 # → http://127.0.0.1:8000
+```
+
+The engine, critic, and renderers are all reused unchanged — the web layer is a
+thin wrapper over `batch` + `renderers`. HTTP API:
+
+| Method & path | Purpose |
+|---------------|---------|
+| `POST /api/jobs` | upload files + formats → starts a forge job |
+| `GET /api/jobs/{id}` | poll status + the review report |
+| `PUT /api/jobs/{id}/skills/{i}` | save edits / set decision (approve, discard) |
+| `GET /api/jobs/{id}/download` | zip of approved skills |
 
 ## Testing the critic (golden regression set)
 
@@ -154,8 +179,9 @@ pytest -v          # fully offline: a fake completer scripts the LLM responses
 - [x] Renderers: Claude Code `SKILL.md`, AdaL `@skills`
 - [x] Source loaders: PDF, HTML, Slack export, VTT/SRT transcripts
 - [x] Golden eval set + regression harness for the critic
+- [x] Web review workbench (upload → review/edit → export) — MVP of the SME service
 - [ ] OpenCode renderer
-- [ ] "Knowledge distillation as a service" packaging for SMEs
+- [ ] Productize the workbench: multi-tenant + auth + private/on-prem deploy (GDPR)
 
 ## License
 
