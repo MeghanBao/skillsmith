@@ -57,6 +57,20 @@ skillsmith inputs
 skillsmith formats
 ```
 
+## 30 秒试玩（无需 API key）
+
+每个命令都支持 `--demo`，用一个离线启发式 forge 顶替真实 LLM——所以不配 `ANTHROPIC_API_KEY` 也能把整条流水线点一遍：
+
+```bash
+pip install -e ".[web]"
+skillsmith serve --demo            # → http://127.0.0.1:8000，然后上传 examples/*
+# 或在命令行：
+skillsmith forge --demo examples/reset-password-sop.md
+skillsmith batch --demo examples/
+```
+
+上传 `examples/reset-password-sop.md` + `examples/onboarding-call.vtt` 会得到一个真实的混合报告——SOP 直接 pass 并自动批准，通话转录落到**需 review**，你可以在浏览器里改完再导出。demo forge 故意做得很笨（正则，不是模型）；配上 API key 跑真实模型，产出会干净得多。
+
 ## 核心循环怎么跑
 
 `forge_skill()`（在 `pipeline.py`）就是整套方法论：

@@ -25,6 +25,22 @@ from .renderers import available_formats, get_renderer
 
 console = Console()
 
+_DEMO_OPTION = click.option(
+    "--demo",
+    is_flag=True,
+    help="offline heuristic forge — no ANTHROPIC_API_KEY needed (for trying it out)",
+)
+
+
+def _demo_completer(demo: bool):
+    """Return a DemoCompleter when --demo is set, else None (real Anthropic)."""
+    if not demo:
+        return None
+    from .demo import DemoCompleter
+
+    console.print("[yellow]DEMO MODE[/yellow] — heuristic offline forge, no API key used")
+    return DemoCompleter()
+
 
 def _write_skill(skill: SkillIR, out_dir: Path, formats: list[str]) -> None:
     for fmt in formats:
@@ -62,11 +78,12 @@ def inputs() -> None:
 @click.option("--format", "-f", "fmts", multiple=True, help="repeatable; default all")
 @click.option("--max-iterations", default=3, show_default=True)
 @click.option("--json", "as_json", is_flag=True, help="print the SkillIR as JSON")
-def forge(source: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, as_json: bool) -> None:
+@_DEMO_OPTION
+def forge(source: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, as_json: bool, demo: bool) -> None:
     """Distill ONE source document into a skill and render it."""
     text = load_source(source)
     console.print(f"[bold]Forging[/bold] from {source} …")
-    result = forge_skill(text, max_iterations=max_iterations)
+    result = forge_skill(text, max_iterations=max_iterations, completer=_demo_completer(demo))
 
     if result.skill is None or result.rejected:
         console.print("[red]Rejected[/red]: source too thin for a real skill.")
@@ -92,10 +109,13 @@ def forge(source: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, a
 @click.option("--format", "-f", "fmts", multiple=True, help="repeatable; default all")
 @click.option("--max-iterations", default=3, show_default=True)
 @click.option("--workers", default=4, show_default=True)
-def batch(folder: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, workers: int) -> None:
+@_DEMO_OPTION
+def batch(folder: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, workers: int, demo: bool) -> None:
     """Forge a skill from every document in a folder + write a summary report."""
     console.print(f"[bold]Batch forging[/bold] from {folder} …")
-    items = forge_batch(folder, max_iterations=max_iterations, max_workers=workers)
+    items = forge_batch(
+        folder, max_iterations=max_iterations, max_workers=workers, completer=_demo_completer(demo)
+    )
 
     selected = list(fmts) or available_formats()
     report = {"sources": [], "summary": {}}
@@ -147,7 +167,8 @@ def eval_critic(golden_dir: Path, threshold: float) -> None:
 @click.option("--host", default="127.0.0.1", show_default=True)
 @click.option("--port", default=8000, show_default=True)
 @click.option("--forge-workers", default=4, show_default=True, help="parallel forges per job")
-def serve(host: str, port: int, forge_workers: int) -> None:
+@_DEMO_OPTION
+def serve(host: str, port: int, forge_workers: int, demo: bool) -> None:
     """Launch the web review workbench (upload → review → export)."""
     try:
         import uvicorn
@@ -158,7 +179,11 @@ def serve(host: str, port: int, forge_workers: int) -> None:
             "web dependencies missing — install them with: pip install 'skillsmith[web]'"
         ) from None
     console.print(f"[bold]Skillsmith[/bold] workbench → http://{host}:{port}")
-    uvicorn.run(create_app(forge_workers=forge_workers), host=host, port=port)
+    uvicorn.run(
+        create_app(completer=_demo_completer(demo), forge_workers=forge_workers),
+        host=host,
+        port=port,
+    )
 
 
 if __name__ == "__main__":

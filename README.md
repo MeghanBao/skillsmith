@@ -63,6 +63,25 @@ skillsmith inputs
 skillsmith formats
 ```
 
+## Try it in 30 seconds (no API key)
+
+Every command takes `--demo`, which swaps the LLM for an offline heuristic forge
+— so you can click through the whole pipeline without `ANTHROPIC_API_KEY`:
+
+```bash
+pip install -e ".[web]"
+skillsmith serve --demo            # → http://127.0.0.1:8000, then upload examples/*
+# or on the CLI:
+skillsmith forge --demo examples/reset-password-sop.md
+skillsmith batch --demo examples/
+```
+
+Uploading `examples/reset-password-sop.md` + `examples/onboarding-call.vtt`
+yields a realistic mixed report — the SOP passes and auto-approves, the call
+transcript lands in **needs-review** so you can edit it in the browser before
+export. The demo forge is deliberately dumb (regex, not a model); a real run
+with an API key produces far cleaner skills.
+
 ## How the core loop works
 
 `forge_skill()` (in `pipeline.py`) is the whole methodology:
