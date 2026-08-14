@@ -1,0 +1,23 @@
+WEBVTT
+
+NOTE Auto-generated captions from the IT onboarding walkthrough call.
+
+1
+00:00:00.500 --> 00:00:04.000
+<v Trainer>Okay so when a new hire shows up you provision their account
+
+2
+00:00:04.000 --> 00:00:08.000
+you provision their account in the identity system first
+
+3
+00:00:08.000 --> 00:00:12.500
+Always create the account before the laptop is handed over, never after
+
+4
+00:00:12.500 --> 00:00:17.000
+Then you add them to the base security group and the team group
+
+5
+00:00:17.000 --> 00:00:21.000
+Never grant admin on day one, that always goes through a ticket

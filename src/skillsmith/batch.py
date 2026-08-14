@@ -13,10 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .llm import Completer
+from .loaders import can_load, load_source
 from .pipeline import ForgeResult, forge_skill
-
-# Extensions we treat as forgeable source documents.
-SOURCE_SUFFIXES = {".md", ".txt", ".rst"}
 
 
 @dataclass
@@ -27,11 +25,18 @@ class BatchItem:
 
 
 def discover_sources(root: Path) -> list[Path]:
-    """Find all forgeable documents under ``root`` (recursive)."""
+    """Find all forgeable documents under ``root`` (recursive).
+
+    A document is forgeable if some registered loader claims its extension
+    (see ``skillsmith.loaders``). ``users.json`` is skipped — it is Slack
+    metadata consumed by the Slack loader, not a source in its own right.
+    """
     if root.is_file():
         return [root]
     return sorted(
-        p for p in root.rglob("*") if p.suffix.lower() in SOURCE_SUFFIXES
+        p
+        for p in root.rglob("*")
+        if can_load(p) and p.name != "users.json"
     )
 
 
@@ -46,11 +51,11 @@ def forge_batch(
 
     def _run(item: BatchItem) -> BatchItem:
         try:
-            source = item.path.read_text(encoding="utf-8")
+            source = load_source(item.path)
             item.result = forge_skill(
                 source, max_iterations=max_iterations, completer=completer
             )
-        except Exception as exc:  # keep one bad doc from sinking the batch
+        except Exception as exc:  # noqa: BLE001 - keep one bad doc from sinking the batch
             item.error = f"{type(exc).__name__}: {exc}"
         return item
 

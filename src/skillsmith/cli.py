@@ -3,6 +3,7 @@
     skillsmith forge  <source>        # one doc -> one skill, all formats
     skillsmith batch  <folder>        # many docs -> many skills + report
     skillsmith formats                # list export targets
+    skillsmith inputs                 # list supported source formats
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from rich.console import Console
 
 from .batch import forge_batch, summarize
 from .ir import SkillIR
+from .loaders import load_source, supported_suffixes
 from .pipeline import forge_skill
 from .renderers import available_formats, get_renderer
 
@@ -45,6 +47,13 @@ def formats() -> None:
 
 
 @main.command()
+def inputs() -> None:
+    """List supported source formats (file extensions)."""
+    for suffix in sorted(supported_suffixes()):
+        console.print(f"- {suffix}")
+
+
+@main.command()
 @click.argument("source", type=click.Path(exists=True, path_type=Path))
 @click.option("--out", "-o", type=click.Path(path_type=Path), default=Path("dist"))
 @click.option("--format", "-f", "fmts", multiple=True, help="repeatable; default all")
@@ -52,7 +61,7 @@ def formats() -> None:
 @click.option("--json", "as_json", is_flag=True, help="print the SkillIR as JSON")
 def forge(source: Path, out: Path, fmts: tuple[str, ...], max_iterations: int, as_json: bool) -> None:
     """Distill ONE source document into a skill and render it."""
-    text = source.read_text(encoding="utf-8")
+    text = load_source(source)
     console.print(f"[bold]Forging[/bold] from {source} …")
     result = forge_skill(text, max_iterations=max_iterations)
 

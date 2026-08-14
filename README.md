@@ -1,5 +1,7 @@
 # Skillsmith 🔨
 
+**English** · [中文](README.zh-CN.md)
+
 **Forge, test, and ship reusable agent skills from raw company knowledge** —
 SOPs, internal docs, chat/Slack transcripts, screen-recording notes.
 
@@ -68,9 +70,23 @@ skillsmith formats
 | `evaluate.py` | candidate → structured verdict + fix instructions |
 | `pipeline.py` | the generate→eval→iterate loop |
 | `batch.py` | scheduler + summary report over a folder |
+| `loaders/` | source file → clean plain text (`.md`, `.pdf`, `.html`, `.vtt`/`.srt`, Slack `.json`) |
 | `renderers/` | `SkillIR` → target files (`claude-code`, `adal`, …) |
 | `llm.py` | the only module that imports the Anthropic SDK |
-| `cli.py` | `forge` / `batch` / `formats` commands |
+| `cli.py` | `forge` / `batch` / `formats` / `inputs` commands |
+
+## Source formats
+
+Loaders normalize each input into plain text before distillation. Run
+`skillsmith inputs` to list them.
+
+| Loader | Extensions | Notes |
+|--------|-----------|-------|
+| text | `.md` `.markdown` `.txt` `.rst` | passthrough |
+| pdf | `.pdf` | per-page text extraction (pypdf) |
+| html | `.html` `.htm` | strips script/style/nav boilerplate (BeautifulSoup) |
+| vtt | `.vtt` `.srt` | caption → prose; drops timings and rolling auto-caption dupes |
+| slack | `.json` | Slack export → `Name: message` transcript; resolves `@mentions` via a sibling `users.json`; non-Slack JSON falls through untouched |
 
 ## Configuration
 
@@ -86,6 +102,13 @@ skillsmith formats
 
 That's it — the generation and eval engine are untouched.
 
+## Adding a source format
+
+1. Subclass `Loader` in `loaders/`, set `suffixes`, implement `load()`.
+2. Register the instance in `loaders/__init__.py`.
+
+Same principle as renderers — generation and eval never change.
+
 ## Tests
 
 ```bash
@@ -97,7 +120,7 @@ pytest -v          # fully offline: a fake completer scripts the LLM responses
 - [x] Core generate→eval→iterate engine + `SkillIR`
 - [x] Batch scheduler with review report
 - [x] Renderers: Claude Code `SKILL.md`, AdaL `@skills`
-- [ ] More source loaders (PDF, HTML, Slack export, VTT transcripts)
+- [x] Source loaders: PDF, HTML, Slack export, VTT/SRT transcripts
 - [ ] OpenCode renderer
 - [ ] Golden eval set + regression harness for the critic
 - [ ] "Knowledge distillation as a service" packaging for SMEs
