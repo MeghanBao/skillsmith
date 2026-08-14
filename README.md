@@ -5,31 +5,35 @@
 **Forge, test, and ship reusable agent skills from raw company knowledge** —
 SOPs, internal docs, chat/Slack transcripts, screen-recording notes.
 
-Skillsmith is one pipeline with three layers:
+Skillsmith is one pipeline, layered:
 
 ```
-Source knowledge (SOP / docs / transcripts)
+Input layer   ── loaders normalize any source to text  (PDF, HTML, Slack, VTT, md)
         │
         ▼
-Core engine   ── generate → test → eval → iterate     (skill-creator methodology)
+Core engine   ── generate → test → eval → iterate       (skill-creator methodology)
         │
         ▼
 Batch layer   ── one run over a whole folder, parallel, with a review report
         │
         ▼
-Output layer  ── one skill IR → many target formats (Claude Code, AdaL @skills, …)
+Output layer  ── one skill IR → many target formats     (Claude Code, AdaL @skills, …)
+        │
+        ▼
+Delivery layer ─ web workbench: upload → review/edit → export  (the SME service)
 ```
 
-The insight: these aren't three features, they're three layers of the same
-pipeline. The core is a single generation+eval engine. Batch is a scheduler
-around it. Cross-format export is a set of renderers over one **intermediate
-representation** (`SkillIR`). Adding a target format is adding a renderer — it
-never touches generation or eval.
+The insight: these aren't separate features, they're layers of the same
+pipeline. The core is a single generation+eval engine. Loaders and renderers are
+adapters on the input and output sides of one **intermediate representation**
+(`SkillIR`); batch schedules the core; the web workbench wraps batch. Adding a
+source format or a target format is adding a loader or a renderer — it never
+touches generation or eval.
 
 ## Install
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev]"          # add ".[web]" for the review workbench
 export ANTHROPIC_API_KEY=sk-...
 ```
 
@@ -42,10 +46,20 @@ skillsmith forge examples/reset-password-sop.md
 # Only the Claude Code SKILL.md, and print the intermediate representation
 skillsmith forge examples/reset-password-sop.md -f claude-code --json
 
+# Any source format works — a caption file, a PDF, a Slack export …
+skillsmith forge examples/onboarding-call.vtt
+
 # A whole folder → many skills + a dist/report.json flagging what needs review
 skillsmith batch ./sops --workers 8
 
-# What can we export to?
+# Web review workbench (upload → review/edit → export); needs the [web] extra
+skillsmith serve
+
+# Regression-test the critic against the golden set
+skillsmith eval-critic
+
+# What can we read in / export to?
+skillsmith inputs
 skillsmith formats
 ```
 

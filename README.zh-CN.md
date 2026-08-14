@@ -4,27 +4,30 @@
 
 **把企业里散落的原始知识——SOP、内部文档、聊天/Slack 记录、录屏笔记——锻造成可复用的 agent skill，并测试、迭代、交付。**
 
-Skillsmith 是一条流水线的三层结构：
+Skillsmith 是一条流水线，分层展开：
 
 ```
-原始知识（SOP / 文档 / 转录）
+输入层     ── 加载器把任意源统一成文本   （PDF、HTML、Slack、VTT、md）
         │
         ▼
-核心引擎   ── 生成 → 测试 → 评估 → 迭代        （对标 skill-creator 方法论）
+核心引擎   ── 生成 → 测试 → 评估 → 迭代     （对标 skill-creator 方法论）
         │
         ▼
 批量层     ── 一次跑完整个文件夹，并行，附带 review 报告
         │
         ▼
-输出层     ── 同一份 SkillIR → 多种目标格式（Claude Code、AdaL @skills…）
+输出层     ── 同一份 SkillIR → 多种目标格式  （Claude Code、AdaL @skills…）
+        │
+        ▼
+交付层     ── Web 工作台：上传 → review/编辑 → 导出   （面向中小企业的服务）
 ```
 
-核心洞察：这不是三个独立功能，而是同一条流水线的三层。内核是**单个生成+评估引擎**；批量只是在它外面包一层调度；跨格式导出只是一组渲染器，作用在**同一份中间表示**（`SkillIR`）上。加一个目标格式 = 加一个渲染器，永远不碰生成/评估逻辑。
+核心洞察：这不是几个独立功能，而是同一条流水线的层。内核是**单个生成+评估引擎**；加载器和渲染器只是**同一份中间表示**（`SkillIR`）输入侧和输出侧的适配器；批量在核心外包一层调度；Web 工作台又包住批量。加一个源格式 = 加一个加载器，加一个目标格式 = 加一个渲染器——永远不碰生成/评估逻辑。
 
 ## 安装
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev]"          # 要用 review 工作台再加 ".[web]"
 export ANTHROPIC_API_KEY=sk-...
 ```
 
@@ -37,12 +40,21 @@ skillsmith forge examples/reset-password-sop.md
 # 只导出 Claude Code 的 SKILL.md，并打印中间表示
 skillsmith forge examples/reset-password-sop.md -f claude-code --json
 
+# 任意源格式都行——字幕、PDF、Slack 导出……
+skillsmith forge examples/onboarding-call.vtt
+
 # 整个文件夹 → 多个 skill + dist/report.json（标出哪些需人工 review）
 skillsmith batch ./sops --workers 8
 
-# 支持哪些输出格式 / 输入格式？
-skillsmith formats
+# Web review 工作台（上传 → review/编辑 → 导出）；需要 [web] 扩展
+skillsmith serve
+
+# 用 golden 集回归测试评委
+skillsmith eval-critic
+
+# 支持哪些输入 / 输出格式？
 skillsmith inputs
+skillsmith formats
 ```
 
 ## 核心循环怎么跑
